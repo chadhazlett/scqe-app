@@ -160,6 +160,68 @@ input[type="number"]:focus { outline: none; border-color: #2563eb; box-shadow: 0
   <p class="ref">Hazlett (2019), <em>Estimating causal effects of new treatments despite self-selection.</em> &nbsp;|&nbsp; R package: <a href="https://github.com/chadhazlett/scqe" target="_blank">github.com/chadhazlett/scqe</a></p>
 </header>
 
+<!-- ── Worked Example ──────────────────────────────────────────────────────── -->
+<div class="card" style="border-left:4px solid #2563eb">
+  <div class="card-title" style="color:#2563eb">Worked Example &mdash; Dexamethasone and COVID-19 Mortality</div>
+
+  <p style="margin-bottom:0.8rem">
+    <strong>Context.</strong> Early in the COVID-19 pandemic, dexamethasone began to be used widely in
+    hospitalized patients before randomized trial results were available. Wulf, Hazlett, et al.
+    (<em>Observational Studies</em>, 2025) applied SCQE to ask: could observational data have produced
+    defensible, partially informative conclusions about whether dexamethasone reduced 28-day mortality
+    — without relying on the indefensible assumption of no unobserved confounding?
+  </p>
+
+  <p style="margin-bottom:0.6rem"><strong>Study design.</strong> Two consecutive cohorts of COVID-19 patients
+    from a large hospital system, defined so that dexamethasone use changed sharply between them:</p>
+
+  <table class="cohort-table" style="margin-bottom:0.9rem;max-width:480px">
+    <thead>
+      <tr>
+        <th style="text-align:left"></th>
+        <th>Low-use cohort<br><span style="font-weight:400;font-size:0.75rem">Mar–Jun 2020</span></th>
+        <th>High-use cohort<br><span style="font-weight:400;font-size:0.75rem">Jun–Sep 2020</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="row-lbl">Patients</td><td>614</td><td>534</td></tr>
+      <tr><td class="row-lbl">Dexamethasone rate</td><td>5.7%</td><td>46%</td></tr>
+      <tr><td class="row-lbl">28-day mortality</td><td>10.9%</td><td>5.4%</td></tr>
+    </tbody>
+  </table>
+
+  <p style="margin-bottom:0.8rem">
+    <strong>The SCQE question.</strong> Mortality dropped 5.5 percentage points between cohorts. But how
+    much of that drop would have happened anyway — due to improving care, changing case mix, or other
+    time trends — even without the change in dexamethasone use? This unobservable counterfactual trend
+    is &delta;. SCQE shows, for each value of &delta; you are willing to entertain, exactly what treatment
+    effect is implied. The plausible range argued in the paper is <strong>&delta; &isin; [&minus;5pp,&nbsp;0]</strong>:
+    mortality was unlikely to spontaneously rise, and a spontaneous fall larger than half the baseline
+    rate would require a known cause not visible in the data or clinical record.
+  </p>
+
+  <p style="margin-bottom:0.9rem;font-size:0.82rem;color:#3f3f46;background:#f0f6ff;padding:0.75rem 1rem;border-radius:6px">
+    <strong>What to look for in the output.</strong>
+    Over the plausible range (0 to &minus;5pp on the y-axis), the point estimate is <em>always</em> in the
+    beneficial (negative) direction. The upper confidence limit stays below zero for &delta; &ge; &minus;2.3pp,
+    meaning a statistically significant benefit is supported unless you believe baseline mortality would have
+    fallen more than 2.3pp on its own. To conclude <em>significant harm</em>, you would have to defend an
+    80% spontaneous drop in baseline mortality — from 10.9% to 2.2% — which the treating physicians on the
+    research team judged implausible. These findings were consistent with the RECOVERY trial result
+    (published shortly after).
+  </p>
+
+  <button onclick="loadDexExample()" style="
+      display:inline-block;padding:0.55rem 1.25rem;
+      background:#2563eb;color:white;border:none;border-radius:6px;
+      font-size:0.9rem;font-weight:600;cursor:pointer;transition:background 0.12s"
+    onmouseover="this.style.background='#1d4ed8'"
+    onmouseout="this.style.background='#2563eb'">
+    Load dexamethasone example &rarr;
+  </button>
+</div>
+<!-- ── End Worked Example ──────────────────────────────────────────────────── -->
+
 <div class="tabs">
   <button class="tab-btn active" id="tab-1c" onclick="setMode('1c')">One Cohort</button>
   <button class="tab-btn" id="tab-2c" onclick="setMode('2c')">Two Cohorts</button>
@@ -486,6 +548,34 @@ function validate2c() {
   if (Math.abs(tp_frac - tpo_frac) < 1e-10)
     return 'Treatment fractions are identical across periods — denominator is zero.';
   return null;
+}
+
+// ── Worked Example: Dexamethasone (Wulf, Hazlett et al. 2025) ────────────────
+// Low-use cohort (pre):  N=614, dex rate=5.7%, 28-day mortality=10.9%
+//   treated:   n=35,  deaths=4  (mortality ≈10.9%, small group approximation)
+//   untreated: n=579, deaths=63
+// High-use cohort (post): N=534, dex rate=46%, 28-day mortality=5.4%
+//   treated:   n=246, deaths=5  (mortality ≈2.0%)
+//   untreated: n=288, deaths=24 (mortality ≈8.3%)
+// Note: within-cell split for the post cohort is approximate (paper reports
+// only cohort-level totals); point estimate depends only on totals.
+// Plausible δ range argued in paper: 0 to −5 pp.
+function loadDexExample() {
+  setMode('2c');
+  document.getElementById('untr_pre').value   = 579;
+  document.getElementById('Y_untr_pre').value  = 63;
+  document.getElementById('tr_pre').value      = 35;
+  document.getElementById('Y_tr_pre').value    = 4;
+  document.getElementById('untr_post').value   = 288;
+  document.getElementById('Y_untr_post').value = 24;
+  document.getElementById('tr_post').value     = 246;
+  document.getElementById('Y_tr_post').value   = 5;
+  document.getElementById('min_delta').value   = -0.09;
+  document.getElementById('max_delta').value   =  0.01;
+  document.getElementById('n_steps').value     = 21;
+  document.getElementById('alpha').value       = 0.05;
+  compute();
+  document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
 }
 
 function makeDeltas() {
